@@ -217,13 +217,14 @@ function render(){
   if(!S.classes.length&&ui.view!=='settings'){return renderWelcome()}
   if(ui.cls&&!S.classes.some(c=>c.id===ui.cls))ui.cls='';
   if(!ui.cls&&S.classes.length)ui.cls=S.classes[0].id;
+  if(ui.view==='flipped'){const fc=S.classes.filter(c=>c.flipped);if(!fc.length)ui.view='display';else if(!fc.some(c=>c.id===ui.cls))ui.cls=fc[0].id}
   const v=VIEWS.find(x=>x[0]===ui.view);
   document.getElementById('app').innerHTML=`
   <aside class="side noprint"><div class="brand"><div class="mark">★</div><div><div class="bname">✨ رصيدي الذهبي ✨</div><div class="bmotto">«كل مبادرة... تصنع فرقًا»</div></div></div>
-   <nav class="nav">${VIEWS.map(([k,i,l])=>`<button class="${ui.view===k?'on':''}" data-view="${k}"><span>${i}</span><span class="l">${l}</span></button>`).join('')}</nav>
+   <nav class="nav">${VIEWS.filter(x=>x[0]!=='flipped'||S.classes.some(c=>c.flipped)).map(([k,i,l])=>`<button class="${ui.view===k?'on':''}" data-view="${k}"><span>${i}</span><span class="l">${l}</span></button>`).join('')}</nav>
    <div class="side-foot"><div class="cloud" id="cloudSt">${cloudNote()}</div>${backupNote()}</div></aside>
   <div class="main ${ui.projector?'projector':''}"><div class="top noprint"><h1>${v[1]} ${v[2]}</h1>
-   ${['display','flipped','reports','students','log'].includes(ui.view)?`<select id="clsSel">${S.classes.map(c=>`<option value="${c.id}" ${c.id===ui.cls?'selected':''}>الفصل: ${esc(c.name)}</option>`).join('')}</select>`:''}
+   ${['display','flipped','reports','students','log'].includes(ui.view)?`<select id="clsSel">${S.classes.filter(c=>ui.view!=='flipped'||c.flipped).map(c=>`<option value="${c.id}" ${c.id===ui.cls?'selected':''}>الفصل: ${esc(c.name)}</option>`).join('')}</select>`:''}
    <button class="btn btn-g" id="pullBtn">🔄 سحب النقاط من المنصات</button>
    ${ui.view==='display'?`<button class="btn btn-o" id="projBtn">${ui.projector?'↩︎ عرض عادي':'⛶ ملء الشاشة'}</button>`:''}</div>
    <div class="content" id="content"></div><div class="credit">${esc(S.settings.credit)}</div></div>`;
@@ -430,7 +431,7 @@ function vSettings(){
   const el=document.getElementById('content')||(render(),null);if(!el)return;
   el.innerHTML=cloudCardHTML()+`<div class="card"><h3>💾 النسخة الاحتياطية</h3><p class="muted small">إضافة إلى الحفظ السحابي، يمكنك حفظ نسخة احتياطية في ملف من وقت لآخر.</p>
    <div class="row"><button class="btn btn-g" id="bk">⬇️ حفظ نسخة احتياطية</button><button class="btn btn-o" id="imp">⬆️ استيراد نسخة احتياطية</button></div><p class="small">${backupNote()}</p></div>
-  <div class="card"><h3>🏫 الفصول</h3>${S.classes.map(c=>`<div class="row" style="margin-bottom:6px"><b style="flex:1">${esc(c.name)}</b><span class="muted small">${S.students.filter(s=>s.classId===c.id).length} طالبة</span><button class="btn btn-o btn-s" data-rc="${c.id}">تعديل</button><button class="btn btn-o btn-s" data-dc="${c.id}" style="color:var(--red)">حذف</button></div>`).join('')}
+  <div class="card"><h3>🏫 الفصول</h3>${S.classes.map(c=>`<div class="row" style="margin-bottom:6px"><b style="flex:1">${esc(c.name)}</b><span class="muted small">${S.students.filter(s=>s.classId===c.id).length} طالبة</span><label class="row small" style="gap:4px;cursor:pointer"><input type="checkbox" data-fl="${c.id}" ${c.flipped?'checked':''}> 🔄 صف مقلوب</label><button class="btn btn-o btn-s" data-rc="${c.id}">تعديل</button><button class="btn btn-o btn-s" data-dc="${c.id}" style="color:var(--red)">حذف</button></div>`).join('')}
    <div class="row" style="margin-top:10px"><input id="nc" placeholder="اسم فصل جديد مثل 3/2" style="max-width:260px"><button class="btn btn-p" id="ncB">＋ إضافة فصل</button></div></div>
   <div class="card"><h3>✍️ سطر التنفيذ</h3><div class="row"><input id="cr" value="${esc(S.settings.credit)}" style="max-width:360px"><button class="btn btn-o" id="crB">حفظ</button></div></div>
   <div class="card"><h3>🧹 بدء من جديد</h3><p class="muted small">يحذف كل الفصول والطالبات والنقاط — من هذا الجهاز ومن الحفظ السحابي إن كنتِ مسجّلة الدخول. يبقى تسجيل الدخول وإعدادات النقاط.</p><button class="btn btn-r" id="rs">حذف كل البيانات</button></div>`;
@@ -442,6 +443,7 @@ function vSettings(){
   document.querySelectorAll('[data-rc]').forEach(b=>b.onclick=()=>{const c=S.classes.find(x=>x.id===b.dataset.rc);const n=prompt('اسم الفصل',c.name);if(n&&n.trim()){c.name=n.trim();save();render()}});
   document.querySelectorAll('[data-dc]').forEach(b=>b.onclick=()=>{const c=S.classes.find(x=>x.id===b.dataset.dc);const ids=S.students.filter(s=>s.classId===c.id).map(s=>s.id);if(!confirm(`حذف الفصل «${c.name}» و${ids.length} طالبة مع نقاطهن؟`))return;
     S.classes=S.classes.filter(x=>x.id!==c.id);S.students=S.students.filter(s=>s.classId!==c.id);S.tx=S.tx.filter(t=>!ids.includes(t.sid));S.lessons=S.lessons.filter(l=>l.classId!==c.id);save();render()});
+  document.querySelectorAll('[data-fl]').forEach(b=>b.onchange=()=>{S.classes.find(x=>x.id===b.dataset.fl).flipped=b.checked;save();render()});
   g('crB').onclick=()=>{S.settings.credit=g('cr').value;save();render()};
   g('rs').onclick=()=>{if(confirm('حذف كل البيانات نهائيًا والبدء من جديد؟')&&confirm('تأكيد أخير؟')){const r=S.rules,cr=S.settings.credit;S=blank();S.rules=r;S.settings.credit=cr;save();render()}};
 }
