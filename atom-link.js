@@ -3,7 +3,7 @@
   var ATOM_API = "https://script.google.com/macros/s/AKfycbwTrE2mYpDH9QBZPI7X8D9rp2---XKeCFyp4ewsrRKj1-MOrzjSR80S8SpB6GwIdko/exec";
   var STAGE = {1:"عدّاد البروتونات والإلكترونات",2:"صيّادة النيوترونات",3:"بطاقة هوية الذرة",4:"المحققة: من الجسيمات إلى الرمز",5:"مسائل العالِمات",6:"ابني الذرة"};
   var PTS_STAGE = 1;   // نقطة لكل مرحلة تجتازها الطالبة
-  var PTS_ALL   = 2;   // نقطتان إضافيتان عند إنهاء المراحل الست
+  var PTS_ALL   = 3;   // ثلاث نقاط إضافية عند إنهاء المراحل الست
   if (typeof fetchItems !== "function") return;
   var original = fetchItems;
 
