@@ -581,10 +581,17 @@ function bindCloudCard(){
 
 /* 🔄 سحب النقاط */
 const normName=n=>String(n||'').replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
-function suggest(name){
+function suggest(name,sub){
   const n=normName(name);if(!n)return null;const all=S.students.filter(s=>s.active!==false);
   let m=all.filter(s=>normName(s.name)===n);if(m.length===1)return m[0].id;
-  const w=n.split(' ');if(w.length>=2){m=all.filter(s=>{const x=normName(s.name);return x.startsWith(w[0]+' '+w[1])||n.startsWith(x)});if(m.length===1)return m[0].id}
+  /* مطابقة الاسم المختصر: الاسم الأول + بقية الأسماء بالترتيب (مثل: حنين العجلان ← حنين محمد بن عبدالعزيز العجلان) */
+  const tk=x=>normName(x).split(' ').filter(t=>t&&t!=='بن'&&t!=='بنت');const w=tk(name);
+  const gr=x=>{x=normName(x||'');return /اول/.test(x)?'اول':/ثاني/.test(x)?'ثاني':/ثالث/.test(x)?'ثالث':''};
+  const g=gr(sub);const pick=arr=>{if(arr.length>1&&g){const f=arr.filter(s=>gr((S.classes.find(c=>c.id===s.classId)||{}).name)===g);if(f.length)arr=f}return arr.length===1?arr[0].id:null};
+  if(w.length>=2){
+    let r=pick(all.filter(s=>{const x=tk(s.name);if(x[0]!==w[0])return false;let k=1;for(const t of x.slice(1)){if(k<w.length&&t===w[k])k++}return k===w.length}));if(r)return r;
+    r=pick(all.filter(s=>{const x=normName(s.name);return x.startsWith(w[0]+' '+w[1])||n.startsWith(x)}));if(r)return r;
+  }
   m=all.filter(s=>normName(s.name).split(' ')[0]===w[0]);if(m.length===1&&w.length===1)return m[0].id;
   return null;
 }
@@ -628,7 +635,7 @@ async function pullPoints(){
 }
 function reviewDialog(r){
   const groups=[];const gm={};
-  r.items.sort((a,b)=>(a.ts||0)-(b.ts||0)).forEach(i=>{const k=i.lt+'|'+i.lk;if(!gm[k]){gm[k]={k,lt:i.lt,lk:i.lk,who:i.who,sub:i.sub,items:[],sid:S.links[i.lt][i.lk]||suggest(i.who)||''};groups.push(gm[k])}gm[k].items.push(i)});
+  r.items.sort((a,b)=>(a.ts||0)-(b.ts||0)).forEach(i=>{const k=i.lt+'|'+i.lk;if(!gm[k]){gm[k]={k,lt:i.lt,lk:i.lk,who:i.who,sub:i.sub,items:[],sid:S.links[i.lt][i.lk]||suggest(i.who,i.sub)||''};groups.push(gm[k])}gm[k].items.push(i)});
   groups.sort((a,b)=>(!!b.sid-!!a.sid)||a.who.localeCompare(b.who,'ar'));
   const opts=sel=>`<option value="">— اختاري الطالبة —</option>${S.classes.map(c=>`<optgroup label="${esc(c.name)}">${S.students.filter(s=>s.classId===c.id&&s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</optgroup>`).join('')}<option value="ignore">🚫 تجاهل هذا الاسم دائمًا</option>`;
   const errHTML=r.errs.length?`<p class="errline small">${r.errs.map(esc).join('<br>')}</p>`:'';
